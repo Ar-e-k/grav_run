@@ -6,7 +6,10 @@ def binary(x):
     else:
         return 1
 
-    
+
+def binary2(x):
+    return int(x/abs(x))
+
 def tanh(x):
     return np.tanh(x)
 

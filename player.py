@@ -10,6 +10,7 @@ class Player:
 
         self.speed_limit=speed_limit
 
+        self.h_max=[0, 1]
         self.v_speed=0
         self.speed=1 
         self.hight=1-self.p_hight
@@ -21,26 +22,30 @@ class Player:
         self.screen_size=new_screen
         
         
-    def p_frame(self, grav, h_max):
-        h_max[0]/=self.screen_size[1]
-        h_max[1]/=self.screen_size[1]
-        
-        self.update_v_speed(grav, h_max)
-        self.update_hight(h_max)
+    def p_frame(self, grav):
+        self.update_v_speed(grav)
+        self.update_hight()
         self.jump=0
 
 
-    def update_hight(self, h_max):
+    def update_max_h(self, h_max):
+        self.h_max=[
+            h_max[0]/self.screen_size[1],
+            h_max[1]/self.screen_size[1]
+        ]
+
+
+    def update_hight(self):
         self.hight+=self.v_speed
-        if self.hight>h_max[1]-self.p_hight:
-            self.hight=h_max[1]-self.p_hight
+        if self.hight>self.h_max[1]-self.p_hight:
+            self.hight=self.h_max[1]-self.p_hight
             self.v_speed=0
-        elif self.hight<h_max[0]:
-            self.hight=h_max[0]
+        elif self.hight<self.h_max[0]:
+            self.hight=self.h_max[0]
             self.v_speed=0
             
         
-    def update_v_speed(self, grav, h_max):
+    def update_v_speed(self, grav):
         self.v_speed-=self.force*self.jump*self.grav_dir/self.mass
         if not(
                 (self.hight==1-self.p_hight and self.grav_dir==1)
@@ -70,16 +75,20 @@ class Player:
                         self.v_speed=-self.speed_limit
 
     
-    def flip_grav(self):
-        self.grav_dir*=-1
+    def flip_grav(self, val=None):
+        if not(val):
+            self.grav_dir*=-1
+        else:
+            self.grav_dir=val
 
 
-    def check_jump(self, jump, h_max):
-        h_max[0]/=self.screen_size[1]
-        h_max[1]/=self.screen_size[1]
-        
-        if self.hight==h_max[0] or self.hight==h_max[1]-self.p_hight:
-            self.jump=jump
+    def check_jump(self, jump):
+        if self.hight==self.h_max[0] or self.hight==self.h_max[1]-self.p_hight:
+            if jump:
+                self.jump=jump
+            else:
+                return True
+        return False
 
 
     def ret_rect(self):

@@ -1,6 +1,6 @@
 import sys
 import pygame
-from random import randbytes, randint
+from random import randbytes, randint, seed
 from copy import deepcopy as dp
 
 import player as pl
@@ -17,20 +17,21 @@ class Game:
 
         self.screen_size=screen_size
         self.player_offset=0.25
+        self.inputs={}
 
-        self.player_cap=[0, self.screen_size[1]]
         self.grav=8
         self.speed=1/300
 
         self.action={
-            "jump":lambda x:self.players[x].check_jump(1, dp(self.player_cap)),
-            "big_jump":lambda x:players[x].check_jump(1.5, dp(self.player_cap)),
+            "jump":lambda x:self.players[x].check_jump(1),
+            "big_jump":lambda x:players[x].check_jump(1.5),
             "flip":lambda x:self.players[x].flip_grav()
         }
 
         self.ai_action={
-            "jump":lambda x, jump:self.players[x].check_jump(jump, dp(self.player_cap)),
-            "flip":lambda x, val:self.players[x].flip_grav()
+            "jump":lambda x, jump:self.players[x].check_jump(1.5*abs(jump)),
+            "flip":lambda x, val:self.players[x].flip_grav(val)
+            #"flip":lambda x, val:self.players[x].flip_grav() if val>=0 else x
         }
 
         self.obstacles=[
@@ -45,18 +46,20 @@ class Game:
 
     def frame(self):
         self.texts=[]
-        self.texts.append(len(self.obstacles))
+        #self.texts.append(len(self.obstacles))
         self.draw_background()
 
         self.screen_size=self.screen.get_size()
 
+        self.inputs={}
         pl_del=[]
         for key, player in self.players.items():
-            player.p_frame(self.grav, dp(self.player_cap))
+            player.p_frame(self.grav)
             self.draw_player(player)
             colide=self.check_cols(player)
             if colide:
                 pl_del.append(key)
+            self.inputs[key]=self.find_inputs(player)
 
         for key in pl_del:
             del self.players[key]
@@ -81,27 +84,26 @@ class Game:
         #if len(self.obstacles)==0:
         self.gen_obs()
 
-        #self.add_texts()
+        self.add_texts()
 
         if len(self.players.keys())==0:
             return False
         return True
 
 
-    def ai_actions(self, outputs):
-        fitness={}
-        for key, player in self.players.itmes():
-            for output in outputs[key]:
-                self.ai_actions(player, output[1], output[0])
-            fitnesss[key]=5
-        return fitness
-
-            
     def add_texts(self):
         x=0
         y=20
         for i in range(len(self.texts)):
             self.draw_text(str(self.texts[i]), [x, y*i])
+
+
+    def ret_inputs(self):
+        return self.inputs
+
+
+    def ret_alive(self):
+        return list(self.players.keys())
 
         
     def draw_background(self):
@@ -131,8 +133,8 @@ class Game:
 
     def draw_obs(self, poly):
         cords=poly.ret_pos()
-        self.texts.append(cords)
-        self.texts.append(poly.tow_h)
+        #self.texts.append(cords)
+        #self.texts.append(poly.tow_h)
         poly=pygame.draw.polygon(self.screen, [0,255,255], cords)
 
 
@@ -180,7 +182,7 @@ class Game:
     def check_cols(self, player):
         pot=[False, False]
         colide=False
-        
+
         points=player.ret_points()
         x1=self.player_offset*self.screen_size[0]
         x2=self.player_offset*self.screen_size[0]+points[1]
@@ -198,8 +200,10 @@ class Game:
                     pot[side]=min([col[1], (pot[side] or col[1])])
             colide=colide or col[0]
 
-        self.player_cap[0]=pot[0] or 0 
-        self.player_cap[1]=pot[1] or self.screen_size[1]
+        cap=[0, 0]
+        cap[0]=pot[0] or 0
+        cap[1]=pot[1] or self.screen_size[1]
+        player.update_max_h(cap)
 
         return colide
 
@@ -208,8 +212,40 @@ class Game:
         self.action[action](player)
 
 
-    def ai_actions(self, player, action, val):
-        self.ai_action[action](player, val)
+    def ai_actions(self, outputs):
+        fitnesses={}
+        for pos in self.players.keys():
+            for action in outputs[pos]:
+                self.ai_action[action[1]](pos, action[0])
+            fitnesses[pos]=1
+
+        return fitnesses
+
+
+    def find_inputs(self, player):
+        obs=20
+        if player==None:
+            return 3+obs*2
+        inputs=[]
+
+        inputs.append(player.hight)
+        inputs.append(player.grav_dir)
+        #inputs.append(player.check_jump(None))
+        inputs.append(player.v_speed)
+
+        pos=0
+        for pos, obstacle in enumerate(self.obstacles):
+            if obstacle.pos[0]>self.player_offset:
+                break
+        for i in range(obs):
+            try:
+                inputs.append(self.obstacles[pos+i].pos[0])
+                inputs.append(self.obstacles[pos+i].pos[1])
+            except IndexError:
+                inputs.append(0)
+                inputs.append(0)
+
+        return inputs
 
 
     def exit(self):
@@ -218,6 +254,7 @@ class Game:
 
 
 def main(pl_count=1, frame=None, fit_func=None):
+    seed(1)
     pygame.init()
     #screen=pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     p=800
@@ -233,17 +270,20 @@ def main(pl_count=1, frame=None, fit_func=None):
     play=Game(screen, players, screen_size)
     clock=pygame.time.Clock()
     return ai_while(playing, play, clock, frame, fit_func)
-    #return player_while(playing, play, clock)
+    return player_while(playing, play, clock)
 
 
 def ai_while(playing, play, clock, frame, fit_func):
     while playing:
-        clock.tick(60)
+        #clock.tick(60)
         playing=play.frame()
 
-        inputs=[i for i in range(10)]
-        outputs=frame(inputs)
-        fitness=play.ai_actions(outputs[1], outputs[0])
+        inputs=[i for i in range(5)]
+        inputs=play.ret_inputs()
+        alive=play.ret_alive()
+
+        outputs=frame(inputs, alive)
+        fitness=play.ai_actions(outputs)
         fit_func(fitness)
 
         pygame.display.flip()

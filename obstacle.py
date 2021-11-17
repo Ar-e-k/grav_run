@@ -46,13 +46,8 @@ class Obstacle:
                 dis=(point[0]-point2[0])**2+(point[1]-point2[1])**2
 
                 if dis==g_dis:
-                    print("point1", point)
-                    print("point2", point2)
-                    print(grad, c, axis)
                     lines.append([grad, c, axis])
 
-            #print("------------------Break------------------")
-            
         return lines
 
     
@@ -201,9 +196,7 @@ class EvenObstacle(Obstacle):
 
     def attache(self):
         cords=sorted(self.cords, key=lambda x: x[1])
-        #print(cords)
         cords2=sorted(self.cords, key=lambda x: x[0])
-        print(cords2)
         new_obs=EvenObstacle(
             self.edge,
             self.size,
