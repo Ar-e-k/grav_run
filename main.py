@@ -1,6 +1,6 @@
 import sys
 import pygame
-from random import randbytes, randint, seed
+from random import randint, seed
 from copy import deepcopy as dp
 
 import player as pl
@@ -223,7 +223,7 @@ class Game:
 
 
     def find_inputs(self, player):
-        obs=20
+        obs=10
         if player==None:
             return 3+obs*2
         inputs=[]
@@ -253,8 +253,8 @@ class Game:
 
 
 
-def main(pl_count=1, frame=None, fit_func=None):
-    seed(1)
+def main(pl_count=1, frame=None, fit_func=None, seed_num=1):
+    seed(seed_num)
     pygame.init()
     #screen=pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     p=800
@@ -270,10 +270,11 @@ def main(pl_count=1, frame=None, fit_func=None):
     play=Game(screen, players, screen_size)
     clock=pygame.time.Clock()
     return ai_while(playing, play, clock, frame, fit_func)
-    return player_while(playing, play, clock)
+    #return player_while(playing, play, clock)
 
 
 def ai_while(playing, play, clock, frame, fit_func):
+    #print("ai while")
     while playing:
         #clock.tick(60)
         playing=play.frame()
@@ -287,6 +288,8 @@ def ai_while(playing, play, clock, frame, fit_func):
         fit_func(fitness)
 
         pygame.display.flip()
+
+    #print("loop ended")
 
     play.exit()
     return play

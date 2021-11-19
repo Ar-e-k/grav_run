@@ -2,6 +2,9 @@ import numpy as np
 from copy import deepcopy as dp
 from random import uniform as rd
 from random import randint as ri
+from random import seed
+from time import time
+
 
 import functions as ft
 
@@ -36,7 +39,10 @@ class Layer:
 
 
     def edit(self, rg):
-        mut_prob=0.5
+        t=1000*time()
+        seed(int(t) % 2**32)
+        #print("edit", rd(-1, 1))
+        mut_prob=0.8
         mat_list=dp(self.mat_list)
         for i, row in enumerate(self.mat_list):
             for j in range(len(row)):
@@ -46,9 +52,29 @@ class Layer:
         bais_list=dp(self.bais_list)
         for i in range(len(self.bais_list)):
             if rd(0, 1)<mut_prob:
-                self.bais[i]+=rg
+                bais_list[i]+=rg
 
         return Layer(mat_list, bais_list, self.act_vector)
+
+
+    def remake(self, rg):
+        t=1000*time()
+        seed(int(t) % 2**32)
+        print("remake", rd(-1, 1))
+        mut_prob=0.8
+        mat_list=dp(self.mat_list)
+        for i, row in enumerate(self.mat_list):
+            for j in range(len(row)):
+                if rd(0, 1)<mut_prob:
+                    mat_list[i][j]=rd(-rg, rg)
+
+        bais_list=dp(self.bais_list)
+        for i in range(len(self.bais_list)):
+            if rd(0, 1)<mut_prob:
+                bais_list[i]=rd(-rg, rg)
+
+        return Layer(mat_list, bais_list, self.act_vector)
+
 
 
     def edit2(self, rg):

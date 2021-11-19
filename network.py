@@ -1,6 +1,8 @@
 from random import uniform as rd
 from random import randint as ri
+from random import seed
 from copy import deepcopy as dp
+from time import time
 
 import layer as lr
 import functions as ft
@@ -39,7 +41,7 @@ class Network:
             layer=lr.Layer(
                 [[rd(-rang, rang) for i in range(last_layer)] for j in range(hiden_size)],
                 [rd(-rang, rang) for i in range(hiden_size)],
-                [lambda x: ft.linear(x) for i in range(hiden_size)]
+                [lambda x: ft.tanh(x) for i in range(hiden_size)]
             )
             layers.append(layer)
             last_layer=hiden_size
@@ -55,13 +57,25 @@ class Network:
 
 
     def evolve(self, gen):
+        t=1000*time()
+        seed(int(t) % 2**32)
         layers=[]
         for layer in self.layers:
-            rang=self.rang/80
+            rang=self.rang/10
             new_layer=layer.edit(rd(-rang, rang))
             layers.append(new_layer)
 
         return Network(self.input_size, self.output_size, self.rang, layers=layers, id=str(str(self.id)+"."+str(gen)))
+
+
+    def remake(self, gen):
+        layers=[]
+        for layer in self.layers:
+            rang=self.rang
+            new_layer=layer.remake(rang)
+            layers.append(new_layer)
+
+        return Network(self.input_size, self.output_size, self.rang, layers=layers, id=str(str(id)+"."+str(gen)))
 
 
     def evolve1(self):

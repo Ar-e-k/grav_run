@@ -7,15 +7,29 @@ import network
 
 class Evolution:
 
-    def __init__(self, pop_size, input_size, output_names, runner):
+    def __init__(self, pop_size, input_size, output_names, runner, runs=5):
         self.pop_size=pop_size
         self.input_size=input_size
         self.output_names=output_names
         self.runner=runner
+        self.runs=runs
 
         self.fitnesses=[]
         self.max_20_fitnesses=[]
         self.max_fitnesses=[]
+
+
+    def run_avg(self, nets):
+        generation=Generation(dp(nets), list(self.output_names))
+        out=self.runner(len(generation.pops.keys()), generation.frame, generation.fit_func)
+        for i in range(2, self.runs+1):
+            #print(generation)
+            out=self.runner(len(generation.pops.keys()), generation.frame, generation.fit_func, seed_num=i)
+
+        self.fitness=dp(generation.ret_fitness())
+
+        for key in self.fitness.keys():
+            self.fitness[key][1]=int(self.fitness[key][1]/self.runs)
 
 
     def first_gen(self):
@@ -23,9 +37,8 @@ class Evolution:
 
         nets=[network.Network(self.input_size, len(self.output_names), 0.5, id=i) for i in range(self.pop_size)]
 
-        self.generation=Generation(nets, list(self.output_names), self.runner)
-        out=self.runner(len(self.generation.pops.keys()), self.generation.frame, self.generation.fit_func)
-        self.fitness=self.generation.ret_fitness()
+        self.run_avg(nets)
+        #print(self.fitness)
 
         return self.gen()
 
@@ -36,14 +49,13 @@ class Evolution:
         if self.gen_num==50:
             return self.fitnesses, self.max_fitnesses, self.max_20_fitnesses
 
-        self.generation=Generation(nets, list(self.output_names), self.runner)
-        out=self.runner(len(self.generation.pops.keys()), self.generation.frame, self.generation.fit_func)
-        self.fitness=self.generation.ret_fitness()
+        self.run_avg(nets)
 
         return self.gen()
 
 
     def evolve(self):
+        remake=False
         total_fitness=0
         max_fit=[[0, 0] for i in range(int(self.pop_size*0.2))]
         for pos, fit in self.fitness.items():
@@ -56,37 +68,36 @@ class Evolution:
         max_fit=sorted(max_fit, key=lambda x:x[0], reverse=True)
         av_max=sum([i[0] for i in max_fit])/len(max_fit)
 
-        if len(self.max_20_fitnesses)!=0 and (av_max<max(self.max_20_fitnesses) or max_fit[0][0]<max(self.max_fitnesses)) and False:
-            nets=[]
-            for net in self.fitness.values():
-                net=net[0]
-                nets.append(net)
-            print(av_max)
-            print(self.max_20_fitnesses)
-            return nets
 
         self.graphs(total_fitness, max_fit[0][0], av_max, self.fitness[max_fit[0][1]][0].id)
         self.gen_num+=1
 
-        nets=[]
+        nets=[self.fitness[pos[1]][0] for pos in max_fit]
+        try:
+            for i in range(1, 5):
+                if self.max_20_fitnesses[-i]==av_max:
+                    pass
+                else:
+                    break
+            else:
+                remake=True
+        except IndexError:
+            pass
 
         i=0
         while len(nets)<=self.pop_size:
             if i<len(max_fit):
                 for j in range(int((len(max_fit)-i)/4)):
-                    nets.append(self.fitness[max_fit[i][1]][0].evolve(gen=self.gen_num-1))
+                    if remake:
+                        nets.append(self.fitness[max_fit[i][1]][0].remake(gen=self.gen_num-1))
+                    else:
+                        nets.append(self.fitness[max_fit[i][1]][0].evolve(gen=self.gen_num-1))
             else:
                 i=-1
             i+=1
 
-        if len(self.max_fitnesses)!=0 and max_fit[0][0]<max(self.max_fitnesses) and False:
-            for i in range(0, len(max_fit)):
-                print("-----"+str(i)+"-----")
-                print(max_fit[i])
-                print(self.fitness[max_fit[i][1]][0].id, self.fitness[max_fit[i][1]][1])
-
-        nets=nets[0:int(self.pop_size*0.8)]
-        nets+=[self.fitness[pos[1]][0] for pos in max_fit]
+        nets=nets[0:self.pop_size]
+        
         return nets
 
 
@@ -168,22 +179,15 @@ class Evolution:
 
 class Generation:
 
-    def __init__(self, nets, action_names, runner):
+    def __init__(self, nets, action_names):
         self.gen_pop(nets)
         self.action_names=action_names
-        self.runner=runner
-
-        #self.run()
 
 
     def gen_pop(self, nets):
         self.pops={}
         for i in range(len(nets)):
             self.pops[i]=[nets[i], 0]
-
-
-    def run(self):
-        self.runner(len(self.pops.keys()), self.frame, self.fit_func)
 
 
     def frame(self, inputs, alive):
@@ -228,7 +232,7 @@ def main():
     from matplotlib import pyplot as plt
     plt.plot([i for i in range(len(av))], av)
     plt.plot([i for i in range(len(mx))], mx)
-    plt.plot([i for i in range(len(mt))], mt)
+    plt.plot([i for i in range(len(at))], at)
     plt.show()
 
     return evo1
