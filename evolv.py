@@ -46,7 +46,7 @@ class Evolution:
     def gen(self):
         nets=self.evolve()
 
-        if self.gen_num==50:
+        if self.gen_num==20:
             return self.fitnesses, self.max_fitnesses, self.max_20_fitnesses
 
         self.run_avg(nets)

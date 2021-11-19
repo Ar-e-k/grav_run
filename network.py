@@ -49,7 +49,7 @@ class Network:
         out_layer=lr.Layer(
             [[rd(-rang, rang) for i in range(last_layer)] for j in range(output_size)],
             [rd(-rang, rang) for i in range(output_size)],
-            [lambda x:ft.tanh(x), lambda x:ft.binary2(x)]
+            [lambda x:ft.binary_tanh(x), lambda x:ft.binary2(x)]
             #[lambda x: ft.tanh(x) for i in range(output_size)]
         )
         layers.append(out_layer)

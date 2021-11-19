@@ -109,3 +109,10 @@ class Player:
             int((self.hight+self.p_hight)*self.screen_size[1])
         ]
         return points
+
+
+    def ret_rel_hight(self):
+        if self.grav_dir==1:
+            return 1-(self.hight+self.p_hight)
+        else:
+            return self.hight

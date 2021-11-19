@@ -41,7 +41,6 @@ class Layer:
     def edit(self, rg):
         t=1000*time()
         seed(int(t) % 2**32)
-        #print("edit", rd(-1, 1))
         mut_prob=0.8
         mat_list=dp(self.mat_list)
         for i, row in enumerate(self.mat_list):
@@ -60,18 +59,17 @@ class Layer:
     def remake(self, rg):
         t=1000*time()
         seed(int(t) % 2**32)
-        print("remake", rd(-1, 1))
         mut_prob=0.8
         mat_list=dp(self.mat_list)
         for i, row in enumerate(self.mat_list):
             for j in range(len(row)):
                 if rd(0, 1)<mut_prob:
-                    mat_list[i][j]=rd(-rg, rg)
+                    mat_list[i][j]=(rd(0, (rg)))**(1/2)*(ri(0, 1)*2-1)
 
         bais_list=dp(self.bais_list)
         for i in range(len(self.bais_list)):
             if rd(0, 1)<mut_prob:
-                bais_list[i]=rd(-rg, rg)
+                bais_list[i]=(rd(0, rg**2))**(1/2)*(ri(0, 1)*2-1)
 
         return Layer(mat_list, bais_list, self.act_vector)
 

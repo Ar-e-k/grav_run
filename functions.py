@@ -13,6 +13,11 @@ def binary2(x):
 def tanh(x):
     return np.tanh(x)
 
+def binary_tanh(x):
+    if x>0:
+        return np.tanh(x)
+    else:
+        return 0
 
 def r_linear(x):
     if x<0:

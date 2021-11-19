@@ -29,7 +29,7 @@ class Game:
         }
 
         self.ai_action={
-            "jump":lambda x, jump:self.players[x].check_jump(1.5*abs(jump)),
+            "jump":lambda x, jump:self.players[x].check_jump(1.5*jump),
             "flip":lambda x, val:self.players[x].flip_grav(val)
             #"flip":lambda x, val:self.players[x].flip_grav() if val>=0 else x
         }
@@ -53,13 +53,15 @@ class Game:
 
         self.inputs={}
         pl_del=[]
+        box_inputs=self.box_inputs()
+
         for key, player in self.players.items():
             player.p_frame(self.grav)
             self.draw_player(player)
             colide=self.check_cols(player)
             if colide:
                 pl_del.append(key)
-            self.inputs[key]=self.find_inputs(player)
+            self.inputs[key]=self.find_inputs(player, box_inputs)
 
         for key in pl_del:
             del self.players[key]
@@ -222,28 +224,85 @@ class Game:
         return fitnesses
 
 
-    def find_inputs(self, player):
-        obs=10
+    def find_inputs(self, player, box=None):
+        obs=6
         if player==None:
-            return 3+obs*2
+            return 2+obs*2
+        inputs=[]
+
+        inputs.append(player.ret_rel_hight())
+        inputs.append(player.v_speed)
+
+        for pos, x in enumerate(box):
+            if pos%2==0:
+                inputs.append(x)
+            else:
+                if player.grav_dir==1:
+                    inputs.append(x)
+                else:
+                    x=abs(1-x)
+                    inputs.append(x)
+
+        return inputs
+
+    
+
+    def find_inputs2(self, player, box=None):
+        obs=6
+        if player==None:
+            return 2+obs*2
         inputs=[]
 
         inputs.append(player.hight)
-        inputs.append(player.grav_dir)
+        #inputs.append(player.grav_dir)
         #inputs.append(player.check_jump(None))
-        inputs.append(player.v_speed)
+        #inputs.append(player.v_speed)
+        inputs.append(player.v_speed*player.grav_dir)
+
+        return inputs+box
+
+
+    def box_inputs(self):
+        inputs=[]
+        obs=6
 
         pos=0
         for pos, obstacle in enumerate(self.obstacles):
             if obstacle.pos[0]>self.player_offset:
                 break
+        obs_pos=[]
+        obs_usd=[]
         for i in range(obs):
             try:
-                inputs.append(self.obstacles[pos+i].pos[0])
-                inputs.append(self.obstacles[pos+i].pos[1])
+                pos_x=self.obstacles[pos+i].pos[0]
+                if (
+                        pos_x in obs_pos and
+                        self.obstacles[pos+i].ret_side()==obs_usd[obs_pos.index(pos_x)].ret_side()
+                ):
+                    if (
+                            self.obstacles[pos+i].pos[1]*self.obstacles[pos+i].ret_side()
+                            >
+                            obs_usd[obs_pos.index(pos_x)].pos[1]*obs_usd[obs_pos.index(pos_x)].ret_side()
+                        ):
+                            obs_usd[obs_pos.index(pos_x)]=self.obstacles[pos+1]
+
+                else:
+                    obs_usd.append(self.obstacles[pos+i])
+                    obs_pos.append(self.obstacles[pos+i].pos[0])
+            except IndexError:
+                break
+
+        for i in range(obs):
+            try:
+                inputs.append(obs_usd[i].pos[0])
+                inputs.append(obs_usd[i].pos[1])
+                #self.texts.append(obs_usd[i].pos[0])
+                #self.texts.append(obs_usd[i].pos[1])
+                #inputs.append(obs_usd[i].ret_side())
             except IndexError:
                 inputs.append(0)
                 inputs.append(0)
+                #inputs.append(0)
 
         return inputs
 
@@ -270,13 +329,13 @@ def main(pl_count=1, frame=None, fit_func=None, seed_num=1):
     play=Game(screen, players, screen_size)
     clock=pygame.time.Clock()
     return ai_while(playing, play, clock, frame, fit_func)
-    #return player_while(playing, play, clock)
+    return player_while(playing, play, clock)
 
 
 def ai_while(playing, play, clock, frame, fit_func):
     #print("ai while")
     while playing:
-        #clock.tick(60)
+        #clock.tick(6)
         playing=play.frame()
 
         inputs=[i for i in range(5)]
