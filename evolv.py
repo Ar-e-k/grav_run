@@ -15,6 +15,7 @@ class Evolution:
         self.runs=runs
 
         self.fitnesses=[]
+        self.bot_80_fitnesses=[]
         self.max_20_fitnesses=[]
         self.max_fitnesses=[]
 
@@ -35,7 +36,7 @@ class Evolution:
     def first_gen(self):
         self.gen_num=1
 
-        nets=[network.Network(self.input_size, len(self.output_names), 0.5, id=i) for i in range(self.pop_size)]
+        nets=[network.Network(self.input_size, len(self.output_names), 2.5, id=i) for i in range(self.pop_size)]
 
         self.run_avg(nets)
         #print(self.fitness)
@@ -44,10 +45,12 @@ class Evolution:
 
 
     def gen(self):
-        nets=self.evolve()
+        nets, best_net=self.evolve()
 
-        if self.gen_num==20:
-            return self.fitnesses, self.max_fitnesses, self.max_20_fitnesses
+        if self.gen_num==100:
+            best_net=best_net.ret_mats()
+            print(best_net)
+            return self.fitnesses, self.max_fitnesses, self.max_20_fitnesses, self.bot_80_fitnesses, best_net
 
         self.run_avg(nets)
 
@@ -67,13 +70,13 @@ class Evolution:
 
         max_fit=sorted(max_fit, key=lambda x:x[0], reverse=True)
         av_max=sum([i[0] for i in max_fit])/len(max_fit)
+        av_min=(total_fitness-sum(i[0] for i in max_fit))/(self.pop_size-len(max_fit))
 
-
-        self.graphs(total_fitness, max_fit[0][0], av_max, self.fitness[max_fit[0][1]][0].id)
+        self.graphs(total_fitness, max_fit[0][0], av_max, av_min, self.fitness[max_fit[0][1]][0].id)
         self.gen_num+=1
 
         nets=[self.fitness[pos[1]][0] for pos in max_fit]
-        try:
+        '''try:
             for i in range(1, 5):
                 if self.max_20_fitnesses[-i]==av_max:
                     pass
@@ -82,7 +85,7 @@ class Evolution:
             else:
                 remake=True
         except IndexError:
-            pass
+            pass'''
 
         i=0
         while len(nets)<=self.pop_size:
@@ -98,7 +101,7 @@ class Evolution:
 
         nets=nets[0:self.pop_size]
         
-        return nets
+        return nets, self.fitness[max_fit[0][1]][0]
 
 
     def evolve2(self):
@@ -152,24 +155,18 @@ class Evolution:
         return nets
 
 
-    def graphs(self, total_fitness, max_fit, av_top=0, id=None):
+    def graphs(self, total_fitness, max_fit, av_top=0, av_min=0, id=None):
         print("\n\n\n--------"+str(self.gen_num)+"--------")
         print("Average fitness:", total_fitness/self.pop_size)
-        if av_top:
-            print("Average top 20%:", av_top)
+        print("Average bottom 80%:", av_min)
+        print("Average top 20%:", av_top)
         print("Top fitness:", max_fit)
         print("Top fitness ID:", id)
 
         self.fitnesses.append(total_fitness/self.pop_size)
-        self.max_fitnesses.append(max_fit)
+        self.bot_80_fitnesses.append(av_min)
         self.max_20_fitnesses.append(av_top)
-
-        #plt.plot([i for i in range(self.gen_num)], self.fitnesses)
-        #plt.plot([i for i in range(self.gen_num)], self.max_fitnesses)
-        #plt.plot([i for i in range(5)], [i for i in range(5)])
-
-        #print(plt)
-        #plt.show()
+        self.max_fitnesses.append(max_fit)
 
 
     def next_gen(self):
@@ -227,13 +224,20 @@ def main():
     runner=gm.main
     evo1=Evolution(pop_size, input_size, output_names, runner)
 
-    av, mx, at=evo1.first_gen()
+    av, mx, at, ab, bn=evo1.first_gen()
 
-    from matplotlib import pyplot as plt
-    plt.plot([i for i in range(len(av))], av)
-    plt.plot([i for i in range(len(mx))], mx)
-    plt.plot([i for i in range(len(at))], at)
-    plt.show()
+    #from matplotlib import pyplot as plt
+    #plt.plot([i for i in range(len(av))], av)
+    #plt.plot([i for i in range(len(mx))], mx)
+    #plt.plot([i for i in range(len(at))], at)
+    #plt.plot([i for i in range(len(ab))], ab)
+    #plt.show()
+
+    import dill
+    import pickle
+    file=open("nets/net1", "wb")
+    pickle.dump(bn, file)
+    file.close()
 
     return evo1
 

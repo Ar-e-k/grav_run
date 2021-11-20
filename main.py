@@ -5,6 +5,7 @@ from copy import deepcopy as dp
 
 import player as pl
 import obstacle as obs
+import network as nets
 
 class Game:
 
@@ -53,7 +54,8 @@ class Game:
 
         self.inputs={}
         pl_del=[]
-        box_inputs=self.box_inputs()
+        box_inputs=self.box_inputs(1)
+        box_inputs+=self.box_inputs(-1)
 
         for key, player in self.players.items():
             player.p_frame(self.grav)
@@ -225,7 +227,7 @@ class Game:
 
 
     def find_inputs(self, player, box=None):
-        obs=6
+        obs=8
         if player==None:
             return 2+obs*2
         inputs=[]
@@ -246,7 +248,6 @@ class Game:
         return inputs
 
     
-
     def find_inputs2(self, player, box=None):
         obs=6
         if player==None:
@@ -262,9 +263,9 @@ class Game:
         return inputs+box
 
 
-    def box_inputs(self):
+    def box_inputs(self, side):
         inputs=[]
-        obs=6
+        obs=4
 
         pos=0
         for pos, obstacle in enumerate(self.obstacles):
@@ -272,8 +273,12 @@ class Game:
                 break
         obs_pos=[]
         obs_usd=[]
-        for i in range(obs):
+        i=0
+        while i>=obs:
             try:
+                if self.obstacles[pos+1].ret_side()!=side:
+                    i+=1
+                    continue
                 pos_x=self.obstacles[pos+i].pos[0]
                 if (
                         pos_x in obs_pos and
@@ -312,7 +317,7 @@ class Game:
 
 
 
-def main(pl_count=1, frame=None, fit_func=None, seed_num=1):
+def main(pl_count=1, frame=None, fit_func=None, seed_num=1, net=None):
     seed(seed_num)
     pygame.init()
     #screen=pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -328,8 +333,34 @@ def main(pl_count=1, frame=None, fit_func=None, seed_num=1):
     playing=True
     play=Game(screen, players, screen_size)
     clock=pygame.time.Clock()
+
+    if net:
+        return evo_ai_while(playing, play, clock, net)
+
     return ai_while(playing, play, clock, frame, fit_func)
     return player_while(playing, play, clock)
+
+
+def evo_ai_while(playing, play, clock, net):
+    net=nets.Network(net=net)
+    fitness=0
+    while playing:
+        clock.tick(60)
+        playing=play.frame()
+
+        inputs=play.ret_inputs()
+        outputs=net.network_pass(inputs[0])
+        new_outs=[]
+        for i in range(len(outputs)):
+            new_outs.append([float(outputs[i]), list(play.ai_action.keys())[i]])
+        try:
+            fitness+=play.ai_actions({0: new_outs})[0]
+        except KeyError:
+            pass
+
+        pygame.display.flip()
+
+    print(fitness)
 
 
 def ai_while(playing, play, clock, frame, fit_func):
@@ -338,7 +369,6 @@ def ai_while(playing, play, clock, frame, fit_func):
         #clock.tick(6)
         playing=play.frame()
 
-        inputs=[i for i in range(5)]
         inputs=play.ret_inputs()
         alive=play.ret_alive()
 
@@ -382,4 +412,4 @@ def player_while(playing, play, clock):
 
 
 if __name__=="__main__":
-    game1=main()
+    game1=main(net="net1")
